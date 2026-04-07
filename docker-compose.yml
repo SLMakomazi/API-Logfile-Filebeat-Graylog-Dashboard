@@ -1,18 +1,18 @@
-version: '3.8'
-
 services:
 
   mongo:
     image: mongo:6
     container_name: graylog-mongo
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
     volumes:
       - mongo_data:/data/db
     networks:
       - logging-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   opensearch:
     image: opensearchproject/opensearch:2.11.0
@@ -20,12 +20,17 @@ services:
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     networks:
       - logging-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   graylog:
     image: graylog/graylog:5.2
@@ -36,7 +41,8 @@ services:
       - GRAYLOG_HTTP_BIND_ADDRESS=0.0.0.0:9000
       - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
       - GRAYLOG_ELASTICSEARCH_HOSTS=http://opensearch:9200
-      - GRAYLOG_MONGODB_URI=mongodb://admin:admin123@mongo:27017/graylog
+      - GRAYLOG_MONGODB_URI=mongodb://mongo:27017/graylog
+      - GRAYLOG_JAVA_OPTS=-Xms1g -Xmx2g
     ports:
       - "9000:9000"   # Graylog web interface
       - "5044:5044"   # Beats input
@@ -48,8 +54,10 @@ services:
     networks:
       - logging-net
     depends_on:
-      - mongo
-      - opensearch
+      mongo:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
     restart: unless-stopped
 
   api:
@@ -59,6 +67,8 @@ services:
     container_name: spring-api
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8080:8080"
     volumes:
       - logs-data:/logs
     networks:
