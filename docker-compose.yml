@@ -53,7 +53,9 @@ services:
     restart: unless-stopped
 
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: spring-api
     environment:
       - SPRING_PROFILES_ACTIVE=docker
