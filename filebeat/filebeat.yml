@@ -1,0 +1,22 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /logs/application.log
+  fields:
+    logtype: springboot-api
+    service: item-crud-api
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+output.logstash:
+  hosts: ["graylog:5044"]
+
+# Disable monitoring for container setup
+monitoring.enabled: false
+
+# Reduce logging noise
+logging.level: warning
+logging.to_files: false

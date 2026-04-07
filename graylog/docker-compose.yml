@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongo:
+    image: mongo:6.0
+    container_name: graylog-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - graylog-network
+    restart: unless-stopped
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: graylog-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - graylog-network
+    restart: unless-stopped
+
+  # Graylog
+  graylog:
+    image: graylog/graylog:5.2
+    container_name: graylog-server
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_HTTP_BIND_ADDRESS=0.0.0.0:9000
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - GRAYLOG_MONGODB_URI=mongodb://admin:admin123@mongo:27017/graylog
+    ports:
+      - "9000:9000"   # Graylog web interface
+      - "5044:5044"   # Beats input
+      - "12201:12201/udp"   # GELF UDP
+      - "12201:12201/tcp"   # GELF TCP
+    volumes:
+      - graylog_data:/usr/share/graylog/data
+      - graylog_journal:/usr/share/graylog/data/journal
+    networks:
+      - graylog-network
+    depends_on:
+      - mongo
+      - elasticsearch
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  es_data:
+  graylog_data:
+  graylog_journal:
+
+networks:
+  graylog-network:
+    driver: bridge

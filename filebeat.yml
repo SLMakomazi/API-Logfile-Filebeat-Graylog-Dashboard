@@ -1,0 +1,35 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /app/application.log
+  fields:
+    logtype: springboot-api
+    service: item-crud-api
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Add fields to enrich log data
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
+
+# Output configuration for Graylog
+output.logstash:
+  hosts: ["graylog:5044"]
+  
+# Optional: Configure logging for Filebeat itself
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# Monitoring
+monitoring.enabled: false

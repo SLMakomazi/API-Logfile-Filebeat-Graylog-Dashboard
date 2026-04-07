@@ -1,0 +1,6 @@
+com\example\api\controller\ItemController.class
+com\example\api\config\WebConfig.class
+com\example\api\model\Item.class
+com\example\api\interceptor\LoggingInterceptor.class
+com\example\api\repository\ItemRepository.class
+com\example\api\ApiLogfileFilebeatGraylogApplication.class
