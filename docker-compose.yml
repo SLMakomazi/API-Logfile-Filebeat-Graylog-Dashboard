@@ -68,11 +68,10 @@ services:
     restart: unless-stopped
 
   filebeat:
-    image: docker.elastic.co/beats/filebeat:8.11.0
+    build: ./filebeat
     container_name: filebeat
     user: root
     volumes:
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - logs-data:/logs:ro
     depends_on:
       - api
